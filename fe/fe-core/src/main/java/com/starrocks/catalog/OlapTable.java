@@ -2947,7 +2947,7 @@ public class OlapTable extends Table {
             return true;
         }
 
-        PeriodDuration cacheDuration = tableProperty.getDataCachePartitionDuration();
+        PeriodDuration cacheDuration = tableProperty.dataCachePartitionDuration();
         if (cacheDuration != null && getPartitionInfo().isRangePartition()) {
             RangePartitionInfo rangePartitionInfo = (RangePartitionInfo) getPartitionInfo();
             Range<PartitionKey> partitionRange = rangePartitionInfo.getRange(partition.getId());
@@ -2969,6 +2969,13 @@ public class OlapTable extends Table {
             }
         }
         return true;
+    }
+
+    public PeriodDuration dataCachePartitionDuration() {
+        if (tableProperty != null) {
+            return tableProperty.dataCachePartitionDuration();
+        }
+        return null;
     }
     // ------ for lake table and lake materialized view end ------
 }

@@ -120,6 +120,7 @@ import com.starrocks.thrift.TWriteQuorumType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.threeten.extra.PeriodDuration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1589,7 +1590,7 @@ public class SchemaChangeHandler extends AlterHandler {
     }
 
     public AlterJobV2 createAlterMetaJob(List<AlterClause> alterClauses, Database db, OlapTable olapTable) throws UserException {
-        LakeTableAlterMetaJob alterMetaJob;
+        LakeTableAlterMetaJob alterMetaJob = null;
         Preconditions.checkState(alterClauses.size() == 1);
         AlterClause alterClause = alterClauses.get(0);
         Map<String, String> properties = alterClause.getProperties();
@@ -1600,9 +1601,8 @@ public class SchemaChangeHandler extends AlterHandler {
                 throw new DdlException("Only support alter one property in one stmt");
             }
 
-            boolean enablePersistentIndex = false;
             if (properties.containsKey(PropertyAnalyzer.PROPERTIES_ENABLE_PERSISTENT_INDEX)) {
-                enablePersistentIndex = PropertyAnalyzer.analyzeBooleanProp(properties,
+                boolean enablePersistentIndex = PropertyAnalyzer.analyzeBooleanProp(properties,
                         PropertyAnalyzer.PROPERTIES_ENABLE_PERSISTENT_INDEX, false);
                 boolean oldEnablePersistentIndex = olapTable.enablePersistentIndex();
                 if (oldEnablePersistentIndex == enablePersistentIndex) {
@@ -1610,18 +1610,32 @@ public class SchemaChangeHandler extends AlterHandler {
                             olapTable.getName(), enablePersistentIndex));
                     return null;
                 }
-            } else {
-                throw new DdlException("only support alter enable_persistent_index in shared_data mode");
-            }
 
-            long timeoutSecond = PropertyAnalyzer.analyzeTimeout(properties, Config.alter_table_timeout_second);
-            alterMetaJob = new LakeTableAlterMetaJob(GlobalStateMgr.getCurrentState().getNextId(),
-                    db.getId(),
-                    olapTable.getId(), olapTable.getName(), timeoutSecond,
-                    TTabletMetaType.ENABLE_PERSISTENT_INDEX, enablePersistentIndex);
+                long timeoutSecond = PropertyAnalyzer.analyzeTimeout(properties, Config.alter_table_timeout_second);
+                alterMetaJob = new LakeTableAlterMetaJob(GlobalStateMgr.getCurrentState().getNextId(),
+                        db.getId(),
+                        olapTable.getId(), olapTable.getName(), timeoutSecond,
+                        TTabletMetaType.ENABLE_PERSISTENT_INDEX, enablePersistentIndex);
+            } else if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_PARTITION_DURATION)) {
+                PeriodDuration partitionDuration = PropertyAnalyzer.analyzeDataCachePartitionDuration(properties);
+                if (partitionDuration == null) {
+                    throw new DdlException("Null datacache.partition_duration");
+                }
+
+                PeriodDuration oldPartitionDuration = olapTable.dataCachePartitionDuration();
+                if (partitionDuration.equals(oldPartitionDuration)) {
+                    LOG.info(String.format("table: %s datacache.partition_duration is %s, nothing need to do",
+                            olapTable.getName(), partitionDuration));
+                    return null;
+                }
+                olapTable.setDataCachePartitionDuration(partitionDuration);
+            } else {
+                throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
+                        "in shared_data mode");
+            }
         } else {
             // shouldn't happen
-            throw new DdlException("only support alter enable_persistent_index in shared_data mode");
+            throw new DdlException("alterClause is not a instance of ModifyTablePropertiesClause");
         }
         return alterMetaJob;
     }
