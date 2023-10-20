@@ -92,6 +92,7 @@ import com.starrocks.common.util.ListComparator;
 import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.WriteQuorum;
 import com.starrocks.common.util.concurrent.MarkedCountDownLatch;
+import com.starrocks.persist.ModifyTablePropertyOperationLog;
 import com.starrocks.persist.TableAddOrDropColumnsInfo;
 import com.starrocks.qe.ConnectContext;
 import com.starrocks.qe.ShowResultSet;
@@ -1617,6 +1618,8 @@ public class SchemaChangeHandler extends AlterHandler {
                         olapTable.getId(), olapTable.getName(), timeoutSecond,
                         TTabletMetaType.ENABLE_PERSISTENT_INDEX, enablePersistentIndex);
             } else if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_PARTITION_DURATION)) {
+                ModifyTablePropertyOperationLog info =
+                        new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), properties);
                 PeriodDuration partitionDuration = PropertyAnalyzer.analyzeDataCachePartitionDuration(properties);
                 if (partitionDuration == null) {
                     throw new DdlException("Null datacache.partition_duration");
@@ -1629,6 +1632,7 @@ public class SchemaChangeHandler extends AlterHandler {
                     return null;
                 }
                 olapTable.setDataCachePartitionDuration(partitionDuration);
+                GlobalStateMgr.getCurrentState().getEditLog().logAlterTableProperties(info);
             } else {
                 throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
                         "in shared_data mode");
