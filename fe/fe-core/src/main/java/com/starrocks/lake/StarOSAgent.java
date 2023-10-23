@@ -44,6 +44,9 @@ import com.staros.proto.UpdateMetaGroupInfo;
 import com.staros.proto.WorkerGroupDetailInfo;
 import com.staros.proto.WorkerInfo;
 import com.staros.util.LockCloseable;
+import com.starrocks.catalog.MaterializedIndex;
+import com.starrocks.catalog.Partition;
+import com.starrocks.catalog.Tablet;
 import com.starrocks.common.Config;
 import com.starrocks.common.DdlException;
 import com.starrocks.common.UserException;
@@ -463,6 +466,28 @@ public class StarOSAgent {
 
         Preconditions.checkState(shardInfos.size() == numShards);
         return shardInfos.stream().map(ShardInfo::getShardId).collect(Collectors.toList());
+    }
+
+    public void alterShards(LakeTable table, boolean enableCache) throws UserException {
+        try {
+            for (Partition partition : table.getPartitions()) {
+                alterShards(partition, enableCache);
+            }
+        } catch (UserException e) {
+            throw new UserException("TableName: " + table.getName() + ", " + e.getMessage());
+        }
+    }
+
+    public void alterShards(Partition partition, boolean enableCache) throws UserException {
+        List<Tablet> tablets = partition.getAllTablet();
+        List<Long> tabletIds = tablets.stream().map(Tablet::getId).collect(Collectors.toList());
+
+        try {
+            client.alterShards(serviceId, enableCache, tabletIds);
+        } catch (StarClientException e) {
+            throw new UserException("PartitionName: " + partition.getName() + ", Failed to alter shards, " +
+                    e.getMessage());
+        }
     }
 
     public List<Long> listShard(long groupId) throws DdlException {

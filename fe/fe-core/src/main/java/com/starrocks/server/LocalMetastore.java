@@ -2982,6 +2982,7 @@ public class LocalMetastore implements ConnectorMetadata {
      */
     @Override
     public void alterTable(AlterTableStmt stmt) throws UserException {
+        LOG.info("meta change here, alter table set property, chenshi!");
         stateMgr.getAlterJobMgr().processAlterTable(stmt);
     }
 

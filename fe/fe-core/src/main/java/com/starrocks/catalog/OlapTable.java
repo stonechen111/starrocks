@@ -2368,6 +2368,14 @@ public class OlapTable extends Table {
         tableProperty.buildDataCachePartitionDuration();
     }
 
+    /*public void setDataCacheEnable(boolean isEnable) {
+        if (tableProperty == null) {
+            tableProperty = new TableProperty(new HashMap<>());
+        }
+        tableProperty.modifyTableProperties(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE, isEnable);
+        tableProperty.buildDataCacheEnable();
+    }*/
+
     public void setStorageCoolDownTTL(PeriodDuration duration) {
         if (tableProperty == null) {
             tableProperty = new TableProperty(new HashMap<>());

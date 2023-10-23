@@ -92,6 +92,8 @@ import com.starrocks.common.util.ListComparator;
 import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.WriteQuorum;
 import com.starrocks.common.util.concurrent.MarkedCountDownLatch;
+import com.starrocks.lake.DataCacheInfo;
+import com.starrocks.lake.StorageInfo;
 import com.starrocks.persist.TableAddOrDropColumnsInfo;
 import com.starrocks.qe.ConnectContext;
 import com.starrocks.qe.ShowResultSet;
@@ -1629,9 +1631,20 @@ public class SchemaChangeHandler extends AlterHandler {
                     return null;
                 }
                 olapTable.setDataCachePartitionDuration(partitionDuration);
+            } else if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE)) {
+                boolean enableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
+                StorageInfo oldStorageInfo = olapTable.getTableProperty().getStorageInfo();
+                DataCacheInfo oldDataCacheInfo = oldStorageInfo == null ? null : oldStorageInfo.getDataCacheInfo();
+                if (enableDataCache == oldDataCacheInfo.isEnabled()) {
+                    LOG.info(String.format("table: %s datacache.enable is %s, nothing need to do",
+                            olapTable.getName(), dataCacheInfo.isEnabled()));
+                    return null;
+                }
+
+                GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(olapTable, enableDataCache);
             } else {
-                throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
-                        "in shared_data mode");
+                throw new DdlException("Only support alter enable_persistent_index, datacache.partition_duration and " +
+                        "datacache.enable in the shared_data mode");
             }
         } else {
             // shouldn't happen

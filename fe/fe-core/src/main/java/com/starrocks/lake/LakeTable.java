@@ -125,6 +125,7 @@ public class LakeTable extends OlapTable {
 
     @Override
     public AlterJobV2Builder alterTable() {
+        LOG.info("schema change here, syntax: alter table add column b int, chenshi!");
         return new LakeTableAlterJobV2Builder(this);
     }
 

@@ -107,6 +107,22 @@ absl::Status StarOSWorker::remove_shard(const ShardId id) {
     return absl::OkStatus();
 }
 
+absl::Status StarOSWorker::alter_shard(SharId id, bool enable_cache) {
+    std::shared_lock l(_mtx);
+    auto it = _shards.find(id);
+    if (it == _shards.end()) {
+        return absl::NotFoundError(fmt::format("failed to alter shard, shard_id {}, cache enable {}", id, cache_enable));
+    }
+
+    auto cache_info = it->second.shard_info.cache_info;
+    cache_info.set_enable_cache(info.enable_cache());
+    auto st = invalidate_fs(it->second.shard_info);
+    if (!st.ok()) {
+        return st;
+    }
+    return absl::OKStatus();
+}
+
 absl::StatusOr<staros::starlet::ShardInfo> StarOSWorker::get_shard_info(ShardId id) const {
     std::shared_lock l(_mtx);
     auto it = _shards.find(id);
