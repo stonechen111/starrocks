@@ -53,7 +53,7 @@ public:
 
     absl::Status add_shard(const ShardInfo& shard) override;
 
-    absl::Status alter_shard(const bool enable_cache) override;
+    absl::Status alter_shard(const ShardId shard, const bool enable_cache) override;
 
     absl::Status remove_shard(const ShardId shard) override;
 

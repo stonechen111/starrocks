@@ -44,7 +44,6 @@ import com.staros.proto.UpdateMetaGroupInfo;
 import com.staros.proto.WorkerGroupDetailInfo;
 import com.staros.proto.WorkerInfo;
 import com.staros.util.LockCloseable;
-import com.starrocks.catalog.MaterializedIndex;
 import com.starrocks.catalog.Partition;
 import com.starrocks.catalog.Tablet;
 import com.starrocks.common.Config;
@@ -483,7 +482,7 @@ public class StarOSAgent {
         List<Long> tabletIds = tablets.stream().map(Tablet::getId).collect(Collectors.toList());
 
         try {
-            client.alterShards(serviceId, enableCache, tabletIds);
+            client.alterShard(serviceId, tabletIds, enableCache);
         } catch (StarClientException e) {
             throw new UserException("PartitionName: " + partition.getName() + ", Failed to alter shards, " +
                     e.getMessage());

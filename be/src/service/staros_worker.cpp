@@ -107,7 +107,7 @@ absl::Status StarOSWorker::remove_shard(const ShardId id) {
     return absl::OkStatus();
 }
 
-absl::Status StarOSWorker::alter_shard(SharId id, bool enable_cache) {
+absl::Status StarOSWorker::alter_shard(const SharId id, const bool enable_cache) {
     std::shared_lock l(_mtx);
     auto it = _shards.find(id);
     if (it == _shards.end()) {

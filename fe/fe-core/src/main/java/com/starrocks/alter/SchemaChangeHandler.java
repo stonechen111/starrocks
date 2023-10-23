@@ -93,6 +93,7 @@ import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.WriteQuorum;
 import com.starrocks.common.util.concurrent.MarkedCountDownLatch;
 import com.starrocks.lake.DataCacheInfo;
+import com.starrocks.lake.LakeTable;
 import com.starrocks.lake.StorageInfo;
 import com.starrocks.persist.TableAddOrDropColumnsInfo;
 import com.starrocks.qe.ConnectContext;
@@ -1636,12 +1637,17 @@ public class SchemaChangeHandler extends AlterHandler {
                 StorageInfo oldStorageInfo = olapTable.getTableProperty().getStorageInfo();
                 DataCacheInfo oldDataCacheInfo = oldStorageInfo == null ? null : oldStorageInfo.getDataCacheInfo();
                 if (enableDataCache == oldDataCacheInfo.isEnabled()) {
-                    LOG.info(String.format("table: %s datacache.enable is %s, nothing need to do",
-                            olapTable.getName(), dataCacheInfo.isEnabled()));
+                    LOG.info(String.format("table: %s datacache.enable is %b, nothing need to do",
+                            olapTable.getName(), enableDataCache));
                     return null;
                 }
 
-                GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(olapTable, enableDataCache);
+                if (olapTable instanceof LakeTable) {
+                    LakeTable lakeTable = (LakeTable) olapTable;
+                    GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(lakeTable, enableDataCache);
+                } else {
+                    throw new DdlException("Only support modify datacache.enable for lake tables");
+                }
             } else {
                 throw new DdlException("Only support alter enable_persistent_index, datacache.partition_duration and " +
                         "datacache.enable in the shared_data mode");
