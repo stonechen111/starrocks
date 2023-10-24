@@ -664,7 +664,8 @@ public class Partition extends MetaObject implements PhysicalPartition, Writable
     }
 
     public List<Tablet> getAllTablet() {
-        List<Tablet> tablets = null;   
+        List<Tablet> tablets = Lists.newArrayList();
+        tablets.addAll(baseIndex.getTablets());
         if (idToVisibleRollupIndex != null) {
             for (Map.Entry<Long, MaterializedIndex> entry : idToVisibleRollupIndex.entrySet()) {
                 tablets.addAll(entry.getValue().getTablets());

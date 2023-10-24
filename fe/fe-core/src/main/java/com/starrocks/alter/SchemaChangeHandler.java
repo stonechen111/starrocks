@@ -1648,6 +1648,11 @@ public class SchemaChangeHandler extends AlterHandler {
                 } else {
                     throw new DdlException("Only support modify datacache.enable for lake tables");
                 }
+
+                for (DataCacheInfo dataCache : olapTable.getPartitionInfo().getAllDataCacheInfos()) {
+                    dataCache.setDataCacheEnable(enableDataCache);
+                }
+                olapTable.setDataCacheEnable(enableDataCache);
             } else {
                 throw new DdlException("Only support alter enable_persistent_index, datacache.partition_duration and " +
                         "datacache.enable in the shared_data mode");
