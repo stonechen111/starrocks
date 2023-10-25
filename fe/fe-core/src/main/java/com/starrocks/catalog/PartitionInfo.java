@@ -182,6 +182,14 @@ public class PartitionInfo implements Cloneable, Writable, GsonPreProcessable, G
         return idToStorageCacheInfo.get(partitionId);
     }
 
+    public boolean getDataCacheEnable(long partitionId) {
+        if (idToStorageCacheInfo.get(partitionId) == null) {
+            return false;
+        } else {
+            return idToStorageCacheInfo.get(partitionId).isEnabled();
+        }
+    }
+
     public void setDataCacheInfo(long partitionId, DataCacheInfo dataCacheInfo) {
         idToStorageCacheInfo.put(partitionId, dataCacheInfo);
     }

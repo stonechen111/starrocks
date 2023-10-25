@@ -1646,7 +1646,7 @@ public class SchemaChangeHandler extends AlterHandler {
                     LakeTable lakeTable = (LakeTable) olapTable;
                     GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(lakeTable, enableDataCache);
                 } else {
-                    throw new DdlException("Only support modify datacache.enable for lake tables");
+                    throw new DdlException("Only support alter datacache.enable for lake tables");
                 }
 
                 for (DataCacheInfo dataCache : olapTable.getPartitionInfo().getAllDataCacheInfos()) {

@@ -74,6 +74,7 @@ import com.starrocks.common.util.DateUtils;
 import com.starrocks.common.util.DynamicPartitionUtil;
 import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.TimeUtils;
+import com.starrocks.lake.DataCacheInfo;
 import com.starrocks.persist.AlterMaterializedViewStatusLog;
 import com.starrocks.persist.AlterViewInfo;
 import com.starrocks.persist.BatchModifyPartitionsInfo;
@@ -527,6 +528,8 @@ public class AlterJobMgr {
             } else if (currentAlterOps.hasRollupOp()) {
                 materializedViewHandler.process(alterClauses, db, olapTable);
                 isSynchronous = false;
+            /*} else if (currentAlterOps.hasPartitionOp() && olapTable.isCloudNativeTable()) {
+            } else if (currentAlterOps.hasPartitionOp() && !olapTable.isCloudNativeTable()) {*/
             } else if (currentAlterOps.hasPartitionOp()) {
                 Preconditions.checkState(alterClauses.size() == 1);
                 AlterClause alterClause = alterClauses.get(0);
@@ -551,9 +554,11 @@ public class AlterJobMgr {
                     GlobalStateMgr.getCurrentState()
                             .replaceTempPartition(db, tableName, replacePartitionClause);
                 } else if (alterClause instanceof ModifyPartitionClause) {
+                    LOG.info("22222 meta change here, alter table set property, chenshi!");
                     ModifyPartitionClause clause = ((ModifyPartitionClause) alterClause);
                     // expand the partition names if it is 'Modify Partition(*)'
                     if (clause.isNeedExpand()) {
+                        LOG.info("33333 meta change here, alter table set property, chenshi!");
                         List<String> partitionNames = clause.getPartitionNames();
                         partitionNames.clear();
                         for (Partition partition : olapTable.getPartitions()) {
@@ -564,6 +569,7 @@ public class AlterJobMgr {
                     if (properties.containsKey(PropertyAnalyzer.PROPERTIES_INMEMORY)) {
                         needProcessOutsideDatabaseLock = true;
                     } else {
+                        LOG.info("44444 meta change here, alter table set property, chenshi!");
                         List<String> partitionNames = clause.getPartitionNames();
                         modifyPartitionsProperty(db, olapTable, partitionNames, properties);
                     }
@@ -865,6 +871,8 @@ public class AlterJobMgr {
         // 4. tablet type
         TTabletType tTabletType =
                 PropertyAnalyzer.analyzeTabletType(properties);
+        // 5. enable data cache
+        boolean enableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
 
         // modify meta here
         for (String partitionName : partitionNames) {
@@ -916,8 +924,28 @@ public class AlterJobMgr {
             if (tTabletType != partitionInfo.getTabletType(partition.getId())) {
                 partitionInfo.setTabletType(partition.getId(), tTabletType);
             }
+            // 5. enable data cache
+            DataCacheInfo oldDataCacheInfo = partitionInfo.getDataCacheInfo(partition.getId());
+            if (oldDataCacheInfo == null) {
+                oldDataCacheInfo = new DataCacheInfo(false, false);
+                partitionInfo.setDataCacheInfo(partition.getId(), oldDataCacheInfo);
+            }
+            if (enableDataCache != oldDataCacheInfo.isEnabled()) {
+                /*if (partitionInfo.getTabletType(partition.getId()) != TTabletType.TABLET_TYPE_LAKE) {
+                    throw new DdlException("Only support alter datacache.enable for partitions of lake tables");
+                }*/
+                try {
+                    GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(
+                            olapTable.getPartition(partitionName), enableDataCache);
+                } catch (UserException e) {
+                    throw new DdlException("Falied to alter datacache.enable, partition name: " + partitionName +
+                            ", table name: " + olapTable.getName());
+                }
+                oldDataCacheInfo.setDataCacheEnable(enableDataCache);
+            }
+
             ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), olapTable.getId(), partition.getId(),
-                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory);
+                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory, enableDataCache);
             modifyPartitionInfos.add(info);
         }
 
