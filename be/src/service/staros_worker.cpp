@@ -116,6 +116,10 @@ absl::Status StarOSWorker::modify_shard(const ShardId id, const bool enable_cach
 
     auto cache_info = it->second.shard_info.cache_info;
     cache_info.set_enable_cache(enable_cache);
+    it->second.shard_info.cache_info.set_enable_cache(enable_cache);
+    LOG(INFO) << "Executing modify shard in StarOsWorker, new enable_cache is " << enable_cache;
+    LOG(INFO) << "New cache info is " << cache_info.enable_cache();
+    LOG(INFO) << "it->second.shard_info.cache_info is " << it->second.shard_info.cache_info.enable_cache();
     auto st = invalidate_fs(it->second.shard_info);
     if (!st.ok()) {
         return st;

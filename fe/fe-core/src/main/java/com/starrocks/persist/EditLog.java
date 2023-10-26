@@ -813,6 +813,7 @@ public class EditLog {
                             globalStateMgr.getRollupHandler().replayAlterJobV2(alterJob);
                             break;
                         case SCHEMA_CHANGE:
+                            LOG.info("!!!!! EditLog SCHEMA CHANGE globalStateMgr.getSchemaChangeHandler().replayAlterJobV2");
                             globalStateMgr.getSchemaChangeHandler().replayAlterJobV2(alterJob);
                             break;
                         case OPTIMIZE:
@@ -848,7 +849,9 @@ public class EditLog {
                 case OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX:
                 case OperationType.OP_MODIFY_PRIMARY_INDEX_CACHE_EXPIRE_SEC:
                 case OperationType.OP_ALTER_TABLE_PROPERTIES:
-                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY: {
+                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY:
+                case OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION:
+                case OperationType.OP_ALTER_DATACACHE_ENABLE: {
                     ModifyTablePropertyOperationLog modifyTablePropertyOperationLog =
                             (ModifyTablePropertyOperationLog) journal.getData();
                     globalStateMgr.replayModifyTableProperty(opCode, modifyTablePropertyOperationLog);
@@ -1881,6 +1884,14 @@ public class EditLog {
 
     public void logModifyEnablePersistentIndex(ModifyTablePropertyOperationLog info) {
         logEdit(OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX, info);
+    }
+
+    public void logAlterDataCachePartitionDuration(ModifyTablePropertyOperationLog info) {
+        logEdit(OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION, info);
+    }
+
+    public void logAlterDataCacheEnable(ModifyTablePropertyOperationLog info) {
+        logEdit(OperationType.OP_ALTER_DATACACHE_ENABLE, info);
     }
 
     public void logModifyPrimaryIndexCacheExpireSec(ModifyTablePropertyOperationLog info) {

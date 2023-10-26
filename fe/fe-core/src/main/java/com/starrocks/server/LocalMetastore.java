@@ -4349,6 +4349,7 @@ public class LocalMetastore implements ConnectorMetadata {
 
         Database db = getDb(dbId);
         db.writeLock();
+        LOG.info("enter replayModifyTableProperty");
         try {
             OlapTable olapTable = (OlapTable) db.getTable(tableId);
             if (opCode == OperationType.OP_SET_FORBIT_GLOBAL_DICT) {
@@ -4365,6 +4366,8 @@ public class LocalMetastore implements ConnectorMetadata {
                 }
             } else {
                 TableProperty tableProperty = olapTable.getTableProperty();
+                LOG.info("property size: {}",
+                        properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE));
                 if (tableProperty == null) {
                     tableProperty = new TableProperty(properties);
                     olapTable.setTableProperty(tableProperty.buildProperty(opCode));
@@ -4393,7 +4396,16 @@ public class LocalMetastore implements ConnectorMetadata {
                         }
                     }
                 } else if (opCode == OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX) {
-                    olapTable.setEnablePersistentIndex(tableProperty.enablePersistentIndex());
+                    LOG.info("replay OP_MODIFY_ENABLE_PERSISTENT_INDEX pos1, olapTable.enablePersistentIndex() {}",
+                            olapTable.enablePersistentIndex());
+                    LOG.info("replay OP_MODIFY_ENABLE_PERSISTENT_INDEX pos2, tableProperty.enablePersistentIndex() {}",
+                            tableProperty.enablePersistentIndex());
+                    
+                    LOG.info("replay OP_MODIFY_ENABLE_PERSISTENT_INDEX pos1, olapTable.dataCachePartitionDuration() {}",
+                            olapTable.dataCachePartitionDuration());
+                    LOG.info("replay OP_MODIFY_ENABLE_PERSISTENT_INDEX pos2, tableProperty.dataCachePartitionDuration() {}",
+                            tableProperty.dataCachePartitionDuration());
+                    
                     if (olapTable.isCloudNativeTable()) {
                         olapTable.setPersistentIndexType(tableProperty.getPersistentIndexType());
                     }
