@@ -259,7 +259,6 @@ public class TableProperty implements Writable, GsonPostProcessable {
                 buildInMemory();
                 break;
             case OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX:
-                LOG.info("buildProperty OP_MODIFY_ENABLE_PERSISTENT_INDEX");
                 buildEnablePersistentIndex();
                 buildPersistentIndexType();
                 break;
@@ -291,7 +290,10 @@ public class TableProperty implements Writable, GsonPostProcessable {
                 buildConstraint();
                 break;
             case OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION:
+                LOG.info("before enter buildProperty OP_ALTER_DATACACHE_PARTITION_DURATION, {}", dataCachePartitionDuration());
                 buildDataCachePartitionDuration();
+                LOG.info("alter enter buildProperty OP_ALTER_DATACACHE_PARTITION_DURATION {}",
+                        dataCachePartitionDuration().toString());
                 break;
             case OperationType.OP_ALTER_DATACACHE_ENABLE:
                 buildDataCacheEnable();

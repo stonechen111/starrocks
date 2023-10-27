@@ -1102,7 +1102,6 @@ public class PropertyAnalyzer {
 
     public static boolean analyzeDataCacheEnable(Map<String, String> properties) throws AnalysisException {
         boolean enableDataCache = analyzeBooleanProp(properties, PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE, true);
-        properties.remove(PROPERTIES_DATACACHE_ENABLE);
 
         return enableDataCache;
     }

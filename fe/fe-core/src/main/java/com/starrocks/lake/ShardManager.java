@@ -30,6 +30,7 @@ import java.io.IOException;
 @Deprecated
 public class ShardManager implements Writable {
 
+    //private static final Logger LOG = LogManager.getLogger(ShardManager.class);
     @Deprecated
     public long saveShardManager(DataOutputStream out, long checksum) throws IOException {
         write(out);

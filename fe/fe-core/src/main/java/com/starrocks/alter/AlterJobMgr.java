@@ -872,7 +872,7 @@ public class AlterJobMgr {
         TTabletType tTabletType =
                 PropertyAnalyzer.analyzeTabletType(properties);
         // 5. enable data cache
-        boolean enableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
+        boolean newEnableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
 
         // modify meta here
         for (String partitionName : partitionNames) {
@@ -925,27 +925,27 @@ public class AlterJobMgr {
                 partitionInfo.setTabletType(partition.getId(), tTabletType);
             }
             // 5. enable data cache
-            DataCacheInfo oldDataCacheInfo = partitionInfo.getDataCacheInfo(partition.getId());
-            if (oldDataCacheInfo == null) {
-                oldDataCacheInfo = new DataCacheInfo(false, false);
-                partitionInfo.setDataCacheInfo(partition.getId(), oldDataCacheInfo);
+            DataCacheInfo dataCacheInfo = partitionInfo.getDataCacheInfo(partition.getId());
+            if (dataCacheInfo == null) {
+                dataCacheInfo = new DataCacheInfo(false, false);
+                partitionInfo.setDataCacheInfo(partition.getId(), dataCacheInfo);
             }
-            if (enableDataCache != oldDataCacheInfo.isEnabled()) {
+            if (newEnableDataCache != dataCacheInfo.isEnabled()) {
                 /*if (partitionInfo.getTabletType(partition.getId()) != TTabletType.TABLET_TYPE_LAKE) {
                     throw new DdlException("Only support alter datacache.enable for partitions of lake tables");
                 }*/
                 try {
                     GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(
-                            olapTable.getPartition(partitionName), enableDataCache);
+                            olapTable.getPartition(partitionName), newEnableDataCache);
                 } catch (UserException e) {
                     throw new DdlException("Falied to alter datacache.enable, partition name: " + partitionName +
                             ", table name: " + olapTable.getName());
                 }
-                oldDataCacheInfo.setDataCacheEnable(enableDataCache);
+                dataCacheInfo.setDataCacheEnable(newEnableDataCache);
             }
 
             ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), olapTable.getId(), partition.getId(),
-                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory, enableDataCache);
+                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory, dataCacheInfo.isEnabled());
             modifyPartitionInfos.add(info);
         }
 
@@ -955,6 +955,7 @@ public class AlterJobMgr {
     }
 
     public void replayModifyPartition(ModifyPartitionInfo info) {
+        LOG.info("!!!!!! replayModifyPartition");
         Database db = GlobalStateMgr.getCurrentState().getDb(info.getDbId());
         db.writeLock();
         try {
@@ -971,6 +972,8 @@ public class AlterJobMgr {
                     olapTable.setReplicationNum(replicationNum);
                 }
             }
+            DataCacheInfo dataCacheInfo = partitionInfo.getDataCacheInfo(info.getPartitionId());
+            dataCacheInfo.setDataCacheEnable(info.getDataCacheEnable());
             partitionInfo.setIsInMemory(info.getPartitionId(), info.isInMemory());
         } finally {
             db.writeUnlock();

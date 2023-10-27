@@ -1352,6 +1352,7 @@ public class EditLog {
     }
 
     public void logModifyPartition(ModifyPartitionInfo info) {
+        LOG.info("!!!!!! logModifyPartition");
         if (FeConstants.STARROCKS_META_VERSION >= StarRocksFEMetaVersion.VERSION_4) {
             logJsonObject(OperationType.OP_MODIFY_PARTITION_V2, info);
         } else {

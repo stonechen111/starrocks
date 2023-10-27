@@ -126,6 +126,7 @@ import com.starrocks.common.util.concurrent.MarkedCountDownLatch;
 import com.starrocks.connector.ConnectorMetadata;
 import com.starrocks.connector.ConnectorTableInfo;
 import com.starrocks.connector.exception.StarRocksConnectorException;
+//import com.starrocks.journal.JournalInconsistentException;
 import com.starrocks.lake.DataCacheInfo;
 import com.starrocks.lake.LakeMaterializedView;
 import com.starrocks.lake.LakeTablet;
@@ -4066,6 +4067,7 @@ public class LocalMetastore implements ConnectorMetadata {
         // log
         ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), table.getId(), partition.getId(),
                 newDataProperty, replicationNum, isInMemory, partitionInfo.getDataCacheEnable(partition.getId()));
+        LOG.info("enter logModifyPartition");
         GlobalStateMgr.getCurrentState().getEditLog().logModifyPartition(info);
         LOG.info("modify partition[{}-{}-{}] replication num to {}", db.getOriginName(), table.getName(),
                 partition.getName(), replicationNum);
@@ -4119,6 +4121,7 @@ public class LocalMetastore implements ConnectorMetadata {
         ModifyTablePropertyOperationLog info =
                 new ModifyTablePropertyOperationLog(db.getId(), table.getId(), properties);
         GlobalStateMgr.getCurrentState().getEditLog().logModifyReplicationNum(info);
+        LOG.info("log OperationType.OP_MODIFY_REPLICATION_NUM");
         LOG.info("modify table[{}] replication num to {}", table.getName(),
                 properties.get(PropertyAnalyzer.PROPERTIES_REPLICATION_NUM));
     }
@@ -4349,7 +4352,7 @@ public class LocalMetastore implements ConnectorMetadata {
 
         Database db = getDb(dbId);
         db.writeLock();
-        LOG.info("enter replayModifyTableProperty");
+        LOG.info("enter replayModifyTableProperty, property size: {}", properties.size());
         try {
             OlapTable olapTable = (OlapTable) db.getTable(tableId);
             if (opCode == OperationType.OP_SET_FORBIT_GLOBAL_DICT) {
@@ -4366,8 +4369,7 @@ public class LocalMetastore implements ConnectorMetadata {
                 }
             } else {
                 TableProperty tableProperty = olapTable.getTableProperty();
-                LOG.info("property size: {}",
-                        properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE));
+                LOG.info("property size: {}", properties.size());
                 if (tableProperty == null) {
                     tableProperty = new TableProperty(properties);
                     olapTable.setTableProperty(tableProperty.buildProperty(opCode));
@@ -4387,6 +4389,7 @@ public class LocalMetastore implements ConnectorMetadata {
                     }
                 } else if (opCode == OperationType.OP_MODIFY_REPLICATION_NUM) {
                     // update partition replication num if this table is unpartitioned table
+                    LOG.info("replay OperationType.OP_MODIFY_REPLICATION_NUM");
                     PartitionInfo partitionInfo = olapTable.getPartitionInfo();
                     if (partitionInfo.getType() == PartitionType.UNPARTITIONED) {
                         String partitionName = olapTable.getName();
@@ -4415,6 +4418,25 @@ public class LocalMetastore implements ConnectorMetadata {
                     if (!olapTable.isBinlogEnabled()) {
                         olapTable.clearBinlogAvailableVersion();
                     }
+                } else if (opCode == OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION) {
+                    /*LOG.info("before replayModifyTableProperty OP_ALTER_DATACACHE_PARTITION_DURATION, {}",
+                            olapTable.dataCachePartitionDuration());
+                    try {
+                        PeriodDuration partitionDuration =
+                                PropertyAnalyzer.analyzeDataCachePartitionDuration(properties);                   
+                        olapTable.setDataCachePartitionDuration(partitionDuration);
+                        LOG.info("alter replayModifyTableProperty OP_ALTER_DATACACHE_PARTITION_DURATION, {}",
+                                olapTable.dataCachePartitionDuration());
+                    } catch (AnalysisException e) {
+                        LOG.info("Failed to analyze datacache.partition_duration"); 
+                    }*/
+                } else if (opCode == OperationType.OP_ALTER_DATACACHE_ENABLE) {
+                    /*try {
+                        boolean enableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
+                        olapTable.setDataCacheEnable(enableDataCache);
+                    } catch (AnalysisException e) {
+                        LOG.info("Failed to analyze datacache.enable");  
+                    }*/
                 }
             }
         } finally {
