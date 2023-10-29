@@ -285,6 +285,9 @@ public class TableProperty implements Writable, GsonPostProcessable {
             case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY:
                 buildConstraint();
                 break;
+            case OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION:
+                buildDataCachePartitionDuration();
+                break;
             default:
                 break;
         }
