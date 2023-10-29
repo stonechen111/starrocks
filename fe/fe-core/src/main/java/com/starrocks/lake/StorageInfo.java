@@ -59,6 +59,15 @@ public class StorageInfo implements GsonPreProcessable, GsonPostProcessable {
         return new DataCacheInfo(getCacheInfo());
     }
 
+    public void setDataCacheEnable(boolean isEnable) {
+        FileCacheInfo newCacheInfo = FileCacheInfo.newBuilder()
+                .setEnableCache(isEnable)
+                .setTtlSeconds(cacheInfo.getTtlSeconds())
+                .setAsyncWriteBack(cacheInfo.getAsyncWriteBack()).build();
+
+        this.cacheInfo = newCacheInfo;
+    }
+
     @Override
     public void gsonPreProcess() throws IOException {
         if (storeInfo != null) {

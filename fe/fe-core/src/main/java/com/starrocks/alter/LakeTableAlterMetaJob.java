@@ -205,6 +205,11 @@ public class LakeTableAlterMetaJob extends AlterJobV2 {
                     tempProperties.put(PropertyAnalyzer.PROPERTIES_ENABLE_PERSISTENT_INDEX, String.valueOf(metaValue));
                     GlobalStateMgr.getCurrentState().getLocalMetastore()
                             .modifyTableMeta(db, table, tempProperties, metaType);
+                } else if (metaType == TTabletMetaType.DATACACHE_ENABLE) {
+                    Map<String, String> tempProperties = new HashMap<>();
+                    tempProperties.put(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE, String.valueOf(metaValue));
+                    GlobalStateMgr.getCurrentState().getLocalMetastore()
+                            .modifyTableMeta(db, table, tempProperties, metaType);
                 }
 
             }

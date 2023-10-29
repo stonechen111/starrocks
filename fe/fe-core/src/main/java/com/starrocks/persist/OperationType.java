@@ -506,6 +506,9 @@ public class OperationType {
 
     // alter catalog
     public static final short OP_ALTER_CATALOG = 13300;
+    
+    // alter datacache info of lake table
+    public static final short OP_ALTER_DATACACHE_ENABLE = 13401;
 
     /**
      * NOTICE: OperationType cannot use a value exceeding 20000, and an error will be reported if it exceeds

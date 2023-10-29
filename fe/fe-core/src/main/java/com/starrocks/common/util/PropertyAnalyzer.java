@@ -1100,6 +1100,12 @@ public class PropertyAnalyzer {
         return periodDuration;
     }
 
+    public static boolean analyzeDataCacheEnable(Map<String, String> properties) throws AnalysisException {
+        boolean enableDataCache = analyzeBooleanProp(properties, PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE, true);
+
+        return enableDataCache;
+    }
+
     public static TPersistentIndexType analyzePersistentIndexType(Map<String, String> properties) throws AnalysisException {
         if (properties != null && properties.containsKey(PROPERTIES_PERSISTENT_INDEX_TYPE)) {
             String type = properties.get(PROPERTIES_PERSISTENT_INDEX_TYPE);

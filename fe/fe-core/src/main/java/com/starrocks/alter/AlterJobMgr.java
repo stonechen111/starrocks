@@ -74,6 +74,7 @@ import com.starrocks.common.util.DateUtils;
 import com.starrocks.common.util.DynamicPartitionUtil;
 import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.TimeUtils;
+import com.starrocks.lake.DataCacheInfo;
 import com.starrocks.persist.AlterMaterializedViewStatusLog;
 import com.starrocks.persist.AlterViewInfo;
 import com.starrocks.persist.BatchModifyPartitionsInfo;
@@ -865,6 +866,8 @@ public class AlterJobMgr {
         // 4. tablet type
         TTabletType tTabletType =
                 PropertyAnalyzer.analyzeTabletType(properties);
+        // 5. enable data cache
+        boolean newEnableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
 
         // modify meta here
         for (String partitionName : partitionNames) {
@@ -916,8 +919,25 @@ public class AlterJobMgr {
             if (tTabletType != partitionInfo.getTabletType(partition.getId())) {
                 partitionInfo.setTabletType(partition.getId(), tTabletType);
             }
+            // 5. enable data cache
+            DataCacheInfo dataCacheInfo = partitionInfo.getDataCacheInfo(partition.getId());
+            if (dataCacheInfo == null) {
+                dataCacheInfo = new DataCacheInfo(false, false);
+                partitionInfo.setDataCacheInfo(partition.getId(), dataCacheInfo);
+            }
+            if (newEnableDataCache != dataCacheInfo.isEnabled()) {
+                try {
+                    GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(
+                            olapTable.getPartition(partitionName), newEnableDataCache);
+                } catch (UserException e) {
+                    throw new DdlException("Falied to alter datacache.enable, partition name: " + partitionName +
+                            ", table name: " + olapTable.getName());
+                }
+                dataCacheInfo.setDataCacheEnable(newEnableDataCache);
+            }
+
             ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), olapTable.getId(), partition.getId(),
-                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory);
+                    newDataProperty, newReplicationNum, hasInMemory ? newInMemory : oldInMemory, dataCacheInfo.isEnabled());
             modifyPartitionInfos.add(info);
         }
 
@@ -943,6 +963,8 @@ public class AlterJobMgr {
                     olapTable.setReplicationNum(replicationNum);
                 }
             }
+            DataCacheInfo dataCacheInfo = partitionInfo.getDataCacheInfo(info.getPartitionId());
+            dataCacheInfo.setDataCacheEnable(info.getDataCacheEnable());
             partitionInfo.setIsInMemory(info.getPartitionId(), info.isInMemory());
         } finally {
             db.writeUnlock();

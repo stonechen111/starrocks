@@ -351,6 +351,7 @@ enum TTabletMetaType {
     BUCKET_SIZE,
     PRIMARY_INDEX_CACHE_EXPIRE_SEC,
     STORAGE_TYPE
+    DATACACHE_ENABLE
 }
 
 struct TTabletMetaInfo {

@@ -848,7 +848,8 @@ public class EditLog {
                 case OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX:
                 case OperationType.OP_MODIFY_PRIMARY_INDEX_CACHE_EXPIRE_SEC:
                 case OperationType.OP_ALTER_TABLE_PROPERTIES:
-                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY: {
+                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY:
+                case OperationType.OP_ALTER_DATACACHE_ENABLE: {
                     ModifyTablePropertyOperationLog modifyTablePropertyOperationLog =
                             (ModifyTablePropertyOperationLog) journal.getData();
                     globalStateMgr.replayModifyTableProperty(opCode, modifyTablePropertyOperationLog);
@@ -1881,6 +1882,10 @@ public class EditLog {
 
     public void logModifyEnablePersistentIndex(ModifyTablePropertyOperationLog info) {
         logEdit(OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX, info);
+    }
+
+    public void logAlterDataCacheEnable(ModifyTablePropertyOperationLog info) {
+        logEdit(OperationType.OP_ALTER_DATACACHE_ENABLE, info);
     }
 
     public void logModifyPrimaryIndexCacheExpireSec(ModifyTablePropertyOperationLog info) {
