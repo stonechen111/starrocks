@@ -1595,6 +1595,8 @@ public class SchemaChangeHandler extends AlterHandler {
         Preconditions.checkState(alterClauses.size() == 1);
         AlterClause alterClause = alterClauses.get(0);
         Map<String, String> properties = alterClause.getProperties();
+        Map<String, String> propClone = Maps.newHashMap();
+        propClone.putAll(properties);
         if (alterClause instanceof ModifyTablePropertiesClause) {
             // update table meta
             // for now enable_persistent_index
@@ -1618,13 +1620,10 @@ public class SchemaChangeHandler extends AlterHandler {
                         olapTable.getId(), olapTable.getName(), timeoutSecond,
                         TTabletMetaType.ENABLE_PERSISTENT_INDEX, enablePersistentIndex);
             } else if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_PARTITION_DURATION)) {
-                ModifyTablePropertyOperationLog info =
-                        new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), properties);
                 PeriodDuration partitionDuration = PropertyAnalyzer.analyzeDataCachePartitionDuration(properties);
                 if (partitionDuration == null) {
                     throw new DdlException("Null datacache.partition_duration");
                 }
-
                 PeriodDuration oldPartitionDuration = olapTable.dataCachePartitionDuration();
                 if (partitionDuration.equals(oldPartitionDuration)) {
                     LOG.info(String.format("table: %s datacache.partition_duration is %s, nothing need to do",
@@ -1632,7 +1631,9 @@ public class SchemaChangeHandler extends AlterHandler {
                     return null;
                 }
                 olapTable.setDataCachePartitionDuration(partitionDuration);
-                GlobalStateMgr.getCurrentState().getEditLog().logAlterTableProperties(info);
+                ModifyTablePropertyOperationLog info =
+                        new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), propClone);
+                GlobalStateMgr.getCurrentState().getEditLog().logAlterDataCachePartitionDuration(info);
             } else {
                 throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
                         "in shared_data mode");
