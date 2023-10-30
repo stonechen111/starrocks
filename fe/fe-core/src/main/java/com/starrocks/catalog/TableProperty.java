@@ -216,6 +216,8 @@ public class TableProperty implements Writable, GsonPostProcessable {
 
     private PeriodDuration dataCachePartitionDuration;
 
+    private Boolean dataCacheEnable;
+
     public TableProperty() {
         this.properties = new LinkedHashMap<>();
     }
@@ -570,6 +572,15 @@ public class TableProperty implements Writable, GsonPostProcessable {
         return this;
     }
 
+    public TableProperty buildDataCacheEnable() {
+        if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE)) {
+            boolean dataCacheEnable = Boolean.parseBoolean(
+                    properties.getOrDefault(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE, "false"));
+            this.storageInfo.setDataCacheEnable(dataCacheEnable);
+        }
+        return this;
+    }
+ 
     public TableProperty buildStorageCoolDownTTL() {
         if (properties.containsKey(PropertyAnalyzer.PROPERTIES_STORAGE_COOLDOWN_TTL)) {
             String storageCoolDownTTL = properties.get(PropertyAnalyzer.PROPERTIES_STORAGE_COOLDOWN_TTL);
@@ -835,5 +846,6 @@ public class TableProperty implements Writable, GsonPostProcessable {
         buildConstraint();
         buildDataCachePartitionDuration();
         buildUseLightSchemaChange();
+        buildDataCacheEnable();
     }
 }

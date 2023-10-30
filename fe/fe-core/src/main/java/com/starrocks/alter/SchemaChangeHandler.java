@@ -92,6 +92,11 @@ import com.starrocks.common.util.ListComparator;
 import com.starrocks.common.util.PropertyAnalyzer;
 import com.starrocks.common.util.WriteQuorum;
 import com.starrocks.common.util.concurrent.MarkedCountDownLatch;
+import com.starrocks.lake.DataCacheInfo;
+import com.starrocks.lake.LakeTable;
+import com.starrocks.lake.StorageInfo;
+import com.starrocks.persist.BatchModifyPartitionsInfo;
+import com.starrocks.persist.ModifyPartitionInfo;
 import com.starrocks.persist.ModifyTablePropertyOperationLog;
 import com.starrocks.persist.TableAddOrDropColumnsInfo;
 import com.starrocks.qe.ConnectContext;
@@ -1634,9 +1639,47 @@ public class SchemaChangeHandler extends AlterHandler {
                 ModifyTablePropertyOperationLog info =
                         new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), propClone);
                 GlobalStateMgr.getCurrentState().getEditLog().logAlterTableProperties(info);
+            } else if (properties.containsKey(PropertyAnalyzer.PROPERTIES_DATACACHE_ENABLE)) {
+                boolean enableDataCache = PropertyAnalyzer.analyzeDataCacheEnable(properties);
+                StorageInfo oldStorageInfo = olapTable.getTableProperty().getStorageInfo();
+                DataCacheInfo oldDataCacheInfo = oldStorageInfo == null ? null : oldStorageInfo.getDataCacheInfo();
+                if (enableDataCache == oldDataCacheInfo.isEnabled()) {
+                    LOG.info(String.format("table: %s datacache.enable is %b, nothing need to do",
+                            olapTable.getName(), enableDataCache));
+                    return null;
+                }
+
+                if (olapTable instanceof LakeTable) {
+                    LakeTable lakeTable = (LakeTable) olapTable;
+                    GlobalStateMgr.getCurrentState().getStarOSAgent().alterShards(lakeTable, enableDataCache);
+                } else {
+                    throw new DdlException("Only support alter datacache.enable for lake tables");
+                }
+
+                for (DataCacheInfo dataCache : olapTable.getPartitionInfo().getAllDataCacheInfos()) {
+                    dataCache.setDataCacheEnable(enableDataCache);
+                }
+
+                PartitionInfo partitionInfo = olapTable.getPartitionInfo();
+                List<ModifyPartitionInfo> modifyPartitionInfos = Lists.newArrayList();
+                for (Partition partition : olapTable.getPartitions()) {
+                    ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), olapTable.getId(), partition.getId(),
+                            null, // DataProperty
+                            (short) -1,   // ReplicationNum
+                            partitionInfo.getIsInMemory(partition.getId()),
+                            enableDataCache);
+                    modifyPartitionInfos.add(info);
+                }
+                BatchModifyPartitionsInfo batchInfo = new BatchModifyPartitionsInfo(modifyPartitionInfos);
+                GlobalStateMgr.getCurrentState().getEditLog().logBatchModifyPartition(batchInfo);
+
+                olapTable.setDataCacheEnable(enableDataCache);
+                ModifyTablePropertyOperationLog info =
+                        new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), propClone);
+                GlobalStateMgr.getCurrentState().getEditLog().logAlterDataCacheEnable(info);
             } else {
-                throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
-                        "in shared_data mode");
+                throw new DdlException("Only support alter enable_persistent_index, datacache.partition_duration and " +
+                        "datacache.enable in the shared_data mode");
             }
         } else {
             // shouldn't happen

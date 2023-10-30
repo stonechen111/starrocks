@@ -52,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,10 @@ public class PartitionInfo implements Cloneable, Writable, GsonPreProcessable, G
         return idToDataProperty.get(partitionId);
     }
 
+    public Collection<DataCacheInfo> getAllDataCacheInfos() {
+        return idToStorageCacheInfo.values();
+    }
+
     public void setDataProperty(long partitionId, DataProperty newDataProperty) {
         idToDataProperty.put(partitionId, newDataProperty);
     }
@@ -175,6 +180,14 @@ public class PartitionInfo implements Cloneable, Writable, GsonPreProcessable, G
 
     public DataCacheInfo getDataCacheInfo(long partitionId) {
         return idToStorageCacheInfo.get(partitionId);
+    }
+
+    public boolean getDataCacheEnable(long partitionId) {
+        if (idToStorageCacheInfo.get(partitionId) == null) {
+            return false;
+        } else {
+            return idToStorageCacheInfo.get(partitionId).isEnabled();
+        }
     }
 
     public void setDataCacheInfo(long partitionId, DataCacheInfo dataCacheInfo) {

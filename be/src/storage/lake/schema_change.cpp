@@ -348,8 +348,9 @@ Status SchemaChangeHandler::process_update_tablet_meta(const TUpdateTabletMetaIn
 }
 
 Status SchemaChangeHandler::do_process_update_tablet_meta(const TTabletMetaInfo& tablet_meta_info, int64_t txn_id) {
-    if (tablet_meta_info.meta_type != TTabletMetaType::ENABLE_PERSISTENT_INDEX) {
-        // Only support ENABLE_PERSISTENT_INDEX for now
+    if (tablet_meta_info.meta_type != TTabletMetaType::ENABLE_PERSISTENT_INDEX
+            || tablet_meta_info.meta_type != TTabletMetaType::DATACACHE_ENABLE) {
+        // Only support ENABLE_PERSISTENT_INDEX and DATACACHE_ENABLE for now
         LOG(WARNING) << "not supported update meta type: " << tablet_meta_info.meta_type;
         return Status::InternalError(fmt::format("not supported update meta type: {}", tablet_meta_info.meta_type));
     }

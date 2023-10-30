@@ -662,4 +662,15 @@ public class Partition extends MetaObject implements PhysicalPartition, Writable
     public void setMinRetainVersion(long minRetainVersion) {
         this.minRetainVersion = minRetainVersion;
     }
+
+    public List<Tablet> getAllTablets() {
+        List<Tablet> tablets = Lists.newArrayList();
+        tablets.addAll(baseIndex.getTablets());
+        if (idToVisibleRollupIndex != null) {
+            for (Map.Entry<Long, MaterializedIndex> entry : idToVisibleRollupIndex.entrySet()) {
+                tablets.addAll(entry.getValue().getTablets());
+            }
+        }
+        return tablets;
+    }
 }

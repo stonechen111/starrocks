@@ -2964,7 +2964,8 @@ public class LocalMetastore implements ConnectorMetadata {
                                             partition.getId(),
                                             hdd,
                                             (short) -1,
-                                            partitionInfo.getIsInMemory(partition.getId()));
+                                            partitionInfo.getIsInMemory(partition.getId()),
+                                            partitionInfo.getDataCacheEnable(partition.getId()));
                             GlobalStateMgr.getCurrentState().getEditLog().logModifyPartition(info);
                         }
                     } // end for partitions
@@ -4063,7 +4064,7 @@ public class LocalMetastore implements ConnectorMetadata {
 
         // log
         ModifyPartitionInfo info = new ModifyPartitionInfo(db.getId(), table.getId(), partition.getId(),
-                newDataProperty, replicationNum, isInMemory);
+                newDataProperty, replicationNum, isInMemory, partitionInfo.getDataCacheEnable(partition.getId()));
         GlobalStateMgr.getCurrentState().getEditLog().logModifyPartition(info);
         LOG.info("modify partition[{}-{}-{}] replication num to {}", db.getOriginName(), table.getName(),
                 partition.getName(), replicationNum);
