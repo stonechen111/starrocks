@@ -110,7 +110,7 @@ public class LakeTableAlterDataCachePartitionDurationTest {
             }
 
             @Mock
-            public void logModifyEnablePersistentIndex(ModifyTablePropertyOperationLog info) {
+            public void logAlterDataCachePartitionDuration(ModifyTablePropertyOperationLog info) {
 
             }
         };
