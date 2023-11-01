@@ -1626,14 +1626,14 @@ public class SchemaChangeHandler extends AlterHandler {
                 }
                 PeriodDuration oldPartitionDuration = olapTable.dataCachePartitionDuration();
                 if (partitionDuration.equals(oldPartitionDuration)) {
-                    LOG.info(String.format("table: %s datacache.partition_duration is %s, nothing need to do",
-                            olapTable.getName(), partitionDuration));
+                    LOG.info("table: {} datacache.partition_duration is {}, nothing need to do",
+                            olapTable.getName(), partitionDuration);
                     return null;
                 }
                 olapTable.setDataCachePartitionDuration(partitionDuration);
                 ModifyTablePropertyOperationLog info =
                         new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), propClone);
-                GlobalStateMgr.getCurrentState().getEditLog().logAlterDataCachePartitionDuration(info);
+                GlobalStateMgr.getCurrentState().getEditLog().logAlterTableProperties(info);
             } else {
                 throw new DdlException("Only support alter enable_persistent_index and datacache.partition_duration " +
                         "in shared_data mode");

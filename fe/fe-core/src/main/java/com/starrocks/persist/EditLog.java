@@ -848,8 +848,7 @@ public class EditLog {
                 case OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX:
                 case OperationType.OP_MODIFY_PRIMARY_INDEX_CACHE_EXPIRE_SEC:
                 case OperationType.OP_ALTER_TABLE_PROPERTIES:
-                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY:
-                case OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION: {
+                case OperationType.OP_MODIFY_TABLE_CONSTRAINT_PROPERTY: {
                     ModifyTablePropertyOperationLog modifyTablePropertyOperationLog =
                             (ModifyTablePropertyOperationLog) journal.getData();
                     globalStateMgr.replayModifyTableProperty(opCode, modifyTablePropertyOperationLog);
@@ -1884,10 +1883,6 @@ public class EditLog {
         logEdit(OperationType.OP_MODIFY_ENABLE_PERSISTENT_INDEX, info);
     }
 
-    public void logAlterDataCachePartitionDuration(ModifyTablePropertyOperationLog info) {
-        logEdit(OperationType.OP_ALTER_DATACACHE_PARTITION_DURATION, info);
-    }
-
     public void logModifyPrimaryIndexCacheExpireSec(ModifyTablePropertyOperationLog info) {
         logEdit(OperationType.OP_MODIFY_PRIMARY_INDEX_CACHE_EXPIRE_SEC, info);
     }
@@ -2131,7 +2126,7 @@ public class EditLog {
     public void logAlterTableProperties(ModifyTablePropertyOperationLog info) {
         logEdit(OperationType.OP_ALTER_TABLE_PROPERTIES, info);
     }
-
+    
     public void logPipeOp(PipeOpEntry opEntry) {
         logEdit(OperationType.OP_PIPE, opEntry);
     }

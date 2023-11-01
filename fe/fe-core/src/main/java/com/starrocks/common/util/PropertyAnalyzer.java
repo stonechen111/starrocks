@@ -1090,14 +1090,11 @@ public class PropertyAnalyzer {
             return null;
         }
         properties.remove(PROPERTIES_DATACACHE_PARTITION_DURATION);
-        PeriodDuration periodDuration;
         try {
-            periodDuration = TimeUtils.parseHumanReadablePeriodOrDuration(text);
+            return TimeUtils.parseHumanReadablePeriodOrDuration(text);
         } catch (DateTimeParseException ex) {
             throw new AnalysisException(ex.getMessage());
         }
-
-        return periodDuration;
     }
 
     public static TPersistentIndexType analyzePersistentIndexType(Map<String, String> properties) throws AnalysisException {
