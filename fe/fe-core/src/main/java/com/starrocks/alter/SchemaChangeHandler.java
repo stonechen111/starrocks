@@ -1676,7 +1676,7 @@ public class SchemaChangeHandler extends AlterHandler {
                 olapTable.setDataCacheEnable(enableDataCache);
                 ModifyTablePropertyOperationLog info =
                         new ModifyTablePropertyOperationLog(db.getId(), olapTable.getId(), propClone);
-                GlobalStateMgr.getCurrentState().getEditLog().logAlterDataCacheEnable(info);
+                GlobalStateMgr.getCurrentState().getEditLog().logAlterTableProperties(info);
             } else {
                 throw new DdlException("Only support alter enable_persistent_index, datacache.partition_duration and " +
                         "datacache.enable in the shared_data mode");

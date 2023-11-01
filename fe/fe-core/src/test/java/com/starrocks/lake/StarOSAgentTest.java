@@ -35,6 +35,8 @@ import com.staros.proto.StatusCode;
 import com.staros.proto.WorkerGroupDetailInfo;
 import com.staros.proto.WorkerInfo;
 import com.staros.proto.WorkerState;
+import com.starrocks.catalog.MaterializedIndex;
+import com.starrocks.catalog.Partition;
 import com.starrocks.common.Config;
 import com.starrocks.common.DdlException;
 import com.starrocks.common.ExceptionChecker;
@@ -363,6 +365,29 @@ public class StarOSAgentTest {
         List<ShardGroupInfo> realGroupIds = starosAgent.listShardGroup();
         Assert.assertEquals(1, realGroupIds.size());
         Assert.assertEquals(groupId, realGroupIds.get(0).getGroupId());
+    }
+
+    @Test
+    public void testModifyShard() throws StarClientException, DdlException, UserException {
+        LakeTable table = new LakeTable();
+        Partition partition = new Partition(0, "p0", new MaterializedIndex(), null);
+
+        new MockUp<StarClient>() {
+            @Mock
+            public void alterShard(String serviceId, List<Long> shardIds, boolean enableCache)
+                    throws UserException {
+            }
+
+            public void alterShard(Partition partition, boolean enableCache)
+                    throws UserException {
+            }
+        };
+
+        Deencapsulation.setField(starosAgent, "serviceId", "1");
+        starosAgent.alterShards(table, true);
+        starosAgent.alterShards(table, false);
+        starosAgent.alterShards(partition, true);
+        starosAgent.alterShards(partition, true);
     }
 
     @Test

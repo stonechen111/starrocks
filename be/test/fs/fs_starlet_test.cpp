@@ -85,6 +85,8 @@ public:
 
         g_worker = std::make_shared<starrocks::StarOSWorker>();
         (void)g_worker->add_shard(shard_info);
+        (void)g_worker->modify_shard(shard_info.id, true);
+        (void)g_worker->modify_shard(shard_info.id, false);
 
         // Expect a clean root directory before testing
         ASSIGN_OR_ABORT(auto fs, FileSystem::CreateSharedFromString(StarletPath("/")));
@@ -393,6 +395,8 @@ TEST_P(StarletFileSystemTest, test_delete_files) {
     shard_info.cache_info.set_async_write_back(false);
 
     (void)g_worker->add_shard(shard_info);
+    (void)g_worker->modify_shard(shard_info.id, true);
+    (void)g_worker->modify_shard(shard_info.id, false);
 
     auto uri3 = build_starlet_uri(shard_info.id, "/f1");
     paths.emplace_back(uri3);
