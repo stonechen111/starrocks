@@ -114,6 +114,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -2990,10 +2991,15 @@ public class OlapTable extends Table {
                 dataCacheRange = Range.openClosed(PartitionKey.ofDateTime(lower), PartitionKey.ofDateTime(upper));
                 return partitionRange.isConnected(dataCacheRange);
             } else if (rangePartitionInfo.isPartitionedBy(PrimitiveType.DATE)) {
-                LocalDate upper = LocalDate.now();
-                LocalDate lower = upper.minus(cacheDuration);
-                dataCacheRange = Range.openClosed(PartitionKey.ofDate(lower), PartitionKey.ofDate(upper));
-                return partitionRange.isConnected(dataCacheRange);
+                try {
+                    LocalDate upper = LocalDate.now();
+                    LocalDate lower = upper.minus(cacheDuration);
+                    dataCacheRange = Range.openClosed(PartitionKey.ofDate(lower), PartitionKey.ofDate(upper));
+                    return partitionRange.isConnected(dataCacheRange);
+                } catch (UnsupportedTemporalTypeException e) {
+                    LOG.warn("{}. table name: {}, datacache.partition_duration: {}, mismatch with partition range.",
+                            e.getMessage(), super.name, cacheDuration.toString());
+                }
             } else {
                 // If the table was not partitioned by DATE/DATETIME, ignore the property "datacache.partition_duration" and
                 // enable data cache by default.

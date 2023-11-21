@@ -1,0 +1,28 @@
+-- name: test_partition_duration_mismatch
+CREATE TABLE IF NOT EXISTS detail_demo (
+recruit_date DATE NOT NULL COMMENT "YYYY-MM-DD",
+region_num TINYINT COMMENT "range [-128, 127]",
+num_plate SMALLINT COMMENT "range [-32768, 32767]",
+tel INT COMMENT "range [-2147483648, 2147483647]",
+id BIGINT COMMENT "range [-2^63 + 1 ~ 2^63 - 1]",
+password LARGEINT COMMENT "range [-2^127 + 1 ~ 2^127 - 1]",
+name CHAR(20) NOT NULL COMMENT "range char(m),m in (1-255) ",
+profile VARCHAR(500) NOT NULL COMMENT "upper limit value 65533 bytes",
+ispass BOOLEAN COMMENT "true/false",
+`dt` date NOT NULL DEFAULT "1000-01-01" COMMENT "分区字段")
+DUPLICATE KEY(recruit_date, region_num)
+PARTITION BY date_trunc('day', dt)
+DISTRIBUTED BY HASH(recruit_date, region_num)
+PROPERTIES (
+"datacache.enable" = "true",
+"datacache.partition_duration" = "1 HOUR"
+);
+-- result:
+-- !result
+insert into detail_demo values("2023-11-11",1,2,123,1,3311,"aa","bb",true,"2023-11-11");
+-- result:
+-- !result
+select * from detail_demo;
+-- result:
+2023-11-11	1	2	123	1	3311	aa	bb	1	2023-11-11
+-- !result
