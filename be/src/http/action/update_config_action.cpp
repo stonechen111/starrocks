@@ -44,6 +44,7 @@
 #include "agent/agent_common.h"
 #include "agent/agent_server.h"
 #include "common/configbase.h"
+#include "common/gflags_utils.h"
 #include "common/logging.h"
 #include "common/status.h"
 #include "gutil/strings/substitute.h"
@@ -171,6 +172,39 @@ Status UpdateConfigAction::update_config(const std::string& name, const std::str
             auto thread_pool = ExecEnv::GetInstance()->agent_server()->get_thread_pool(TTaskType::RELEASE_SNAPSHOT);
             (void)thread_pool->update_max_threads(config::release_snapshot_worker_count);
         });
+#ifdef USE_STAROS
+        _config_callback.emplace("starlet_cache_thread_num", [&]() {
+            // update hook had been registered in staros.
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("cachemgr_threadpool_size", value) = "") {
+                LOG(WARNING) << "Failed to update cachemgr_threadpool_size";
+            }
+        });
+        _config_callback.emplace("starlet_cache_evict_low_water", [&]() {
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("cachemgr_evict_low_water", value) == "") {
+                LOG(WARNING) << "Failed to update cachemgr_evict_low_water";
+            }
+        });
+        _config_callback.emplace("starlet_cache_evict_high_water", [&]() {
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("cachemgr_evict_high_water", value) == "") {
+                LOG(WARNING) << "Failed to update cachemgr_evict_high_water";
+            }
+        });
+        _config_callback.emplace("starlet_fs_stream_buffer_size_bytes", [&]() {
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("fs_stream_buffer_size_bytes", value) == "") {
+                LOG(WARNING) << "Failed to update fs_stream_buffer_size_bytes";
+            }
+        });
+        _config_callback.emplace("starlet_fs_read_prefetch_enable", [&]() {
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("fs_enable_buffer_prefetch", value) == "") {
+                LOG(WARNING) << "Failed to update fs_enable_buffer_prefetch";
+            }
+        });
+        _config_callback.emplace("starlet_fs_read_prefetch_threadpool_size", [&]() {
+            if (staros::starlet::common::GFlagsUtils::UpdateFlagValue("fs_buffer_prefetch_threadpool_size", value) == "") {
+                LOG(WARNING) << "Failed to update fs_buffer_prefetch_threadpool_size";
+            }
+        });
+#endif // USE_STAROS
     });
 
     Status s = config::set_config(name, value);
