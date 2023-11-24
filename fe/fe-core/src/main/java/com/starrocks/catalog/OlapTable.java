@@ -2999,6 +2999,11 @@ public class OlapTable extends Table {
                 } catch (UnsupportedTemporalTypeException e) {
                     LOG.warn("{}. table name: {}, datacache.partition_duration: {}, mismatch with partition range.",
                             e.getMessage(), super.name, cacheDuration.toString());
+
+                    LocalDateTime upper = LocalDateTime.now();
+                    LocalDateTime lower = upper.minus(cacheDuration);
+                    dataCacheRange = Range.openClosed(PartitionKey.ofDateTime(lower), PartitionKey.ofDateTime(upper));
+                    return partitionRange.isConnected(dataCacheRange);
                 }
             } else {
                 // If the table was not partitioned by DATE/DATETIME, ignore the property "datacache.partition_duration" and

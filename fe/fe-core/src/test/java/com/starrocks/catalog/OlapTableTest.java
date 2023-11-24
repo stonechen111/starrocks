@@ -35,21 +35,30 @@
 package com.starrocks.catalog;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
+import com.starrocks.analysis.DateLiteral;
 import com.starrocks.analysis.IndexDef;
+import com.starrocks.catalog.Partition;
+import com.starrocks.catalog.PartitionInfo;
 import com.starrocks.catalog.Table.TableType;
+import com.starrocks.catalog.TableProperty;
 import com.starrocks.common.FeConstants;
 import com.starrocks.common.io.FastByteArrayOutputStream;
+import com.starrocks.common.util.TimeUtils;
 import com.starrocks.common.util.UnitTestUtil;
 import com.starrocks.server.GlobalStateMgr;
 import mockit.Mock;
 import mockit.MockUp;
 import org.junit.Assert;
 import org.junit.Test;
+import org.threeten.extra.PeriodDuration;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -159,5 +168,105 @@ public class OlapTableTest {
         OlapTable olapTable = new OlapTable();
         Assert.assertNull(olapTable.getTableProperty() == null ? null : 
                 olapTable.getTableProperty().getDataCachePartitionDuration());
+    }
+
+    public void testMVPartitionDurationTimeUintMismatchFailed() {
+        OlapTable olapTable = new OlapTable();
+        olapTable.setTableProperty(new TableProperty(new HashMap<>()));
+        new MockUp<TableProperty>() {
+            @Mock
+            PeriodDuration getDataCachePartitionDuration() {
+                String durationStr = "7 hour";
+                return TimeUtils.parseHumanReadablePeriodOrDuration(durationStr);
+            }
+        };
+        new MockUp<OlapTable>() {
+            @Mock
+            PartitionInfo getPartitionInfo() {
+                PartitionInfo partitionInfo = new RangePartitionInfo();
+                return partitionInfo;
+            };
+        };
+        new MockUp<PartitionInfo>() {
+            @Mock
+            boolean isRangePartition() {
+                return true;
+            };
+        };
+        new MockUp<RangePartitionInfo>() {
+            @Mock
+            Range<PartitionKey> getRange(long partitionId) {
+                PartitionKey p1 = new PartitionKey();
+                p1.pushColumn(new DateLiteral(2022, 11, 1), PrimitiveType.DATE);
+
+                PartitionKey p2 = new PartitionKey();
+                p2.pushColumn(new DateLiteral(2022, 11, 2), PrimitiveType.DATE);
+
+                return Range.openClosed(p1, p2);
+            };
+            @Mock
+            boolean isPartitionedBy(PrimitiveType type) {
+                return (type == PrimitiveType.DATE);
+            };
+        };
+        Partition partition = new Partition(1, "p1", null, null);
+        Assert.assertFalse(olapTable.isEnableFillDataCache(partition));
+    }
+
+    @Test
+    public void testMVPartitionDurationTimeUintMismatchSucceeded() {
+        OlapTable olapTable = new OlapTable();
+        olapTable.setTableProperty(new TableProperty(new HashMap<>()));
+        new MockUp<TableProperty>() {
+            @Mock
+            PeriodDuration getDataCachePartitionDuration() {
+                String durationStr = "2 hour";
+                return TimeUtils.parseHumanReadablePeriodOrDuration(durationStr);
+            }
+        };
+        new MockUp<OlapTable>() {
+            @Mock
+            PartitionInfo getPartitionInfo() {
+                PartitionInfo partitionInfo = new RangePartitionInfo();
+                return partitionInfo;
+            };
+        };
+        new MockUp<PartitionInfo>() {
+            @Mock
+            boolean isRangePartition() {
+                return true;
+            };
+        };
+        new MockUp<RangePartitionInfo>() {
+            @Mock
+            Range<PartitionKey> getRange(long partitionId) {
+                PartitionKey p1 = new PartitionKey();
+                p1.pushColumn(new DateLiteral(2022, 11, 1), PrimitiveType.DATE);
+
+                PartitionKey p2 = new PartitionKey();
+                p2.pushColumn(new DateLiteral(2023, 11, 1), PrimitiveType.DATE);
+
+                return Range.openClosed(p1, p2);
+            };
+            @Mock
+            boolean isPartitionedBy(PrimitiveType type) {
+                return (type == PrimitiveType.DATE);
+            };
+        };
+        new MockUp<LocalDate>() {
+            @Mock
+            LocalDate now() {
+                return LocalDate.of(2023, 10, 8);
+            };
+        };
+        new MockUp<LocalDateTime>() {
+            @Mock
+            LocalDateTime now() {
+                return LocalDateTime.of(2023, 10, 8, 11, 20, 34, 000000);
+            };
+        };
+
+        Partition partition = new Partition(1, "p1", null, null);
+        Assert.assertTrue(olapTable.isEnableFillDataCache(partition));
     }
 }
