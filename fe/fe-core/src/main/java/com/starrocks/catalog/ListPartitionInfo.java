@@ -37,10 +37,13 @@ import com.starrocks.thrift.TStorageMedium;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.threeten.extra.PeriodDuration;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -478,5 +481,65 @@ public class ListPartitionInfo extends PartitionInfo {
         info.idToIsTempPartition = Maps.newHashMap(this.idToIsTempPartition);
         info.automaticPartition = this.automaticPartition;
         return info;
+    }
+
+    public void printListPartition() {
+        idToMultiValues.forEach((key, value) -> LOG.info("idToMultiValues Key: " + key + ", Value: " + value));
+        idToMultiLiteralExprValues.forEach(
+                (key, value) -> LOG.info("idToMultiLiteralExprValues Key: " + key + ", Value: " + value));
+        partitionColumns.forEach(column -> LOG.info("partitionColumns Column: " + column));
+        idToValues.forEach((key, value) -> LOG.info("idToValues Key: " + key + ", Value: " + value));
+        idToLiteralExprValues.forEach(
+                (key, value) -> LOG.info("idToLiteralExprValues Key: " + key + ", Value: " + value));
+        idToIsTempPartition.forEach(
+                (key, value) -> LOG.info("idToIsTempPartition Key: " + key + ", Is temp partition: " + value));
+    }
+
+    private boolean isDateTimeWithinPeriodDuration(String dateTime, PeriodDuration cacheDuration)
+            throws IllegalArgumentException {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+        try {
+            LOG.error("isDateTimeWithinPeriodDuration pos1");
+            LocalDateTime now = LocalDateTime.now();
+            LOG.error("isDateTimeWithinPeriodDuration pos2, now: {}", now);
+            LocalDateTime timeLimit = now.minus(cacheDuration);
+            LOG.error("isDateTimeWithinPeriodDuration pos3, now: {}, timeLimit: {}", now, timeLimit);
+            LocalDateTime dateTimeParsed = LocalDateTime.parse(dateTime, formatter);
+            LOG.error("isDateTimeWithinPeriodDuration pos4, now: {}, timeLimit: {}, dateTimeParsed: {}", now.toString(),
+                    timeLimit.toString(), dateTimeParsed.toString());
+            return dateTimeParsed.isAfter(timeLimit);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to compare " + dateTime + " with " +
+                    cacheDuration.toString() + ", error: " + e.getMessage());
+        }
+    }
+
+    public boolean isListPartitionCacheValid(long partitionId, PeriodDuration cacheDuration)
+            throws IllegalArgumentException {
+        int dateColumnIndex = -1;
+        for (int i = 0; i < partitionColumns.size(); i++) {
+            if (partitionColumns.get(i).getType().isDateType()) {
+                dateColumnIndex = i;
+                break;
+            }
+        }
+        if (dateColumnIndex == -1) {
+            // There is no DATE/DATETIME column present
+            return true;
+        }
+
+        List<List<String>> multiValues = idToMultiValues.get(partitionId);
+        boolean isValid = false;
+        for (List<String> items : multiValues) {
+            // For instance, if the definition of partition p1 is as follows:
+            // PARTITION p1 VALUES IN (("2022-04-01", "Beijing"),("2022-04-01", "Chongqing")),
+            // then multiValues would contain the data: (("2022-04-01", "Beijing"),("2022-04-01", "Chongqing")),
+            // with an example of one of the items being: ("2022-04-01", "Beijing").
+            if (isDateTimeWithinPeriodDuration(items.get(dateColumnIndex), cacheDuration)) {
+                isValid = true;
+                break;
+            }
+        }
+        return isValid;
     }
 }

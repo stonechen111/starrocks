@@ -2992,8 +2992,17 @@ public class OlapTable extends Table {
             return true;
         }
 
+        if (getPartitionInfo().getType() == PartitionType.LIST) {
+            ListPartitionInfo listPartitionInfo = (ListPartitionInfo) getPartitionInfo();
+            listPartitionInfo.printListPartition();
+        }
+
         PeriodDuration cacheDuration = tableProperty.getDataCachePartitionDuration();
-        if (cacheDuration != null && getPartitionInfo().isRangePartition()) {
+        if (cacheDuration == null) {
+            return true;
+        }
+
+        if (getPartitionInfo().isRangePartition()) {
             RangePartitionInfo rangePartitionInfo = (RangePartitionInfo) getPartitionInfo();
             Range<PartitionKey> partitionRange = rangePartitionInfo.getRange(partition.getId());
             Range<PartitionKey> dataCacheRange;
@@ -3005,14 +3014,24 @@ public class OlapTable extends Table {
                     dataCacheRange = Range.openClosed(PartitionKey.ofDateTime(lower), PartitionKey.ofDateTime(upper));
                     return partitionRange.isConnected(dataCacheRange);
                 } catch (Exception e) {
-                    LOG.warn("Table name: {}, datacache.partiton_duration: {}, Failed to compare with partition range. " +
-                            "Error: {}.", super.name, cacheDuration.toString(), e.getMessage());
+                    LOG.warn("Table name: {}, Partition name: {}, datacache.partiton_duration: {}, "
+                                    + " Failed to compare with partition range. Error: {}",
+                            super.name, partition.getName(), cacheDuration.toString(), e.getMessage());
                     return false;
                 }
             } else {
                 // If the table was not partitioned by DATE/DATETIME, ignore the property "datacache.partition_duration" and
                 // enable data cache by default.
                 return true;
+            }
+        } else if (getPartitionInfo().isListPartition()) {
+            ListPartitionInfo listPartitionInfo = (ListPartitionInfo) getPartitionInfo();
+            try {
+                return (listPartitionInfo.isListPartitionCacheValid(partition.getId(), cacheDuration));
+            } catch (IllegalArgumentException e) {
+                LOG.warn("Table name: {}, Partition name: {}, Failed to compare partition list info. Error: {}",
+                        super.name, partition.getName(), e.getMessage());
+                return false;
             }
         }
         return true;
